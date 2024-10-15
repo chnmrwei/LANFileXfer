@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Transfer</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #eef2f3;
+            color: #333;
+        }
+        h1 {
+            font-size: 2em;
+            color: #0056b3;
+            border-bottom: 2px solid #0056b3;
+            padding-bottom: 10px;
+        }
+        form {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        input[type="file"] {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 12px 20px;
+            background-color: #0056b3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s, transform 0.2s;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #004494;
+            transform: scale(1.02);
+        }
+        #fileList {
+            margin-top: 20px;
+            background: #ffffff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        #fileList a {
+            display: block;
+            margin: 10px 0;
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        #fileList a:hover {
+            text-decoration: underline;
+        }
+        #log {
+            margin-top: 20px;
+            padding: 15px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        #log p {
+            margin: 5px 0;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            h1 {
+                font-size: 1.5em;
+            }
+            button {
+                padding: 10px;
+            }
+            form {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>File Transfer</h1>
+
+    <form id="uploadForm" action="/upload" method="POST" enctype="multipart/form-data">
+        <input type="file" name="file" required />
+        <button id="uploadButton" type="submit">Upload</button>
+    </form>
+
+    <h1>Download Files</h1>
+    <div id="fileList"></div>
+    <button id="downloadAllButton">Download All</button>
+
+    <h1>Log</h1>
+    <div id="log"></div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const uploadButton = document.getElementById('uploadButton');
+            const formData = new FormData(this);
+
+            uploadButton.disabled = true;
+            uploadButton.textContent = 'Uploading...';
+
+            fetch('/upload', { method: 'POST', body: formData })
+                .then(response => response.text())
+                .then(data => {
+                    alert(data);
+                    uploadButton.disabled = false;
+                    uploadButton.textContent = 'Upload';
+                    fetchFileList();  // Update file list after successful upload
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    uploadButton.disabled = false;
+                    uploadButton.textContent = 'Upload';
+                });
+        });
+
+        // Fetch and display the file list
+        function fetchFileList() {
+            fetch('/files')
+                .then(response => response.json())
+                .then(files => {
+                    const fileListDiv = document.getElementById('fileList');
+                    fileListDiv.innerHTML = ''; // Clear existing content
+                    files.forEach(file => {
+                        const link = document.createElement('a');
+                        link.href = file.url;
+                        link.textContent = file.name;
+                        link.setAttribute('download', '');
+                        fileListDiv.appendChild(link);
+                    });
+                })
+                .catch(error => console.error('Error fetching file list:', error));
+        }
+
+        // Fetch file list on page load
+        fetchFileList();
+
+        // Download all files
+        document.getElementById('downloadAllButton').addEventListener('click', () => {
+            fetch('/files')
+                .then(response => response.json())
+                .then(files => {
+                    files.forEach(file => {
+                        const link = document.createElement('a');
+                        link.href = file.url;
+                        link.setAttribute('download', '');
+                        document.body.appendChild(link);
+                        link.click(); // Trigger download
+                        document.body.removeChild(link); // Remove temporary link
+                    });
+                })
+                .catch(error => console.error('Error downloading all files:', error));
+        });
+
+        // WebSocket connection
+        const socket = io();
+
+        // Receive logs and display
+        socket.on('log', (message) => {
+            const logDiv = document.getElementById('log');
+            const logEntry = document.createElement('p');
+            logEntry.textContent = message;
+            logDiv.appendChild(logEntry);
+        });
+    </script>
+</body>
+</html>
