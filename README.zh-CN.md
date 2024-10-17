@@ -24,6 +24,8 @@ git clone https://github.com/chnmrwei/LANFileXfer.git
 
 ```sh
 npm install
+npm install express
+npm install -g nodemon
 ```
 启动服务
 
