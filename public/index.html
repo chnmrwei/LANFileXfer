@@ -96,36 +96,36 @@
 </head>
 <body>
     <h1>File Transfer</h1>
-
+    
     <form id="uploadForm" action="/upload" method="POST" enctype="multipart/form-data">
         <input type="file" name="file" required />
         <button id="uploadButton" type="submit">Upload</button>
     </form>
-
+    
     <h1>Download Files</h1>
     <div id="fileList"></div>
+    <!-- 删除单个文件 -->
+    <button id="deleteAllButton" style="margin-top: 20px;">Delete All</button>
+    <p></p>
     <button id="downloadAllButton">Download All</button>
-
+    
     <h1>Log</h1>
     <div id="log"></div>
-
     <script>
         document.getElementById('uploadForm').addEventListener('submit', function(e) {
             e.preventDefault();
-
             const uploadButton = document.getElementById('uploadButton');
             const formData = new FormData(this);
-
             uploadButton.disabled = true;
             uploadButton.textContent = 'Uploading...';
-
+    
             fetch('/upload', { method: 'POST', body: formData })
                 .then(response => response.text())
                 .then(data => {
                     alert(data);
                     uploadButton.disabled = false;
                     uploadButton.textContent = 'Upload';
-                    fetchFileList();  // Update file list after successful upload
+                    fetchFileList(); // Update file list after successful upload
                 })
                 .catch(error => {
                     console.error('Error:', error);
@@ -133,7 +133,7 @@
                     uploadButton.textContent = 'Upload';
                 });
         });
-
+    
         // Fetch and display the file list
         function fetchFileList() {
             fetch('/files')
@@ -141,25 +141,53 @@
                 .then(files => {
                     const fileListDiv = document.getElementById('fileList');
                     fileListDiv.innerHTML = ''; // Clear existing content
-                    files.forEach(file => {
-                        const link = document.createElement('a');
-                        link.href = file.url;
-                        link.textContent = file.name;
-                        link.setAttribute('download', '');
-                        fileListDiv.appendChild(link);
-                    });
+                    if (files.length === 0) {
+                        fileListDiv.innerHTML = '<p>无可下载文件</p>'; // 提示没有文件
+                    } else {
+                        files.forEach(file => {
+                            const fileEntry = document.createElement('div');
+                            const link = document.createElement('a');
+                            link.href = file.url;
+                            link.textContent = file.name;
+                            link.setAttribute('download', '');
+                            fileEntry.appendChild(link);
+    
+                            // 添加删除按钮
+                            const deleteButton = document.createElement('button');
+                            deleteButton.textContent = 'Delete';
+                            deleteButton.style.marginLeft = '10px';
+                            deleteButton.onclick = function() {
+                                if (confirm(`确定要删除文件 ${file.name} 吗？`)) {
+                                    fetch(`/delete/${file.name}`, { method: 'DELETE' })
+                                        .then(response => response.text())
+                                        .then(data => {
+                                            alert(data);
+                                            fetchFileList(); // 更新文件列表
+                                        })
+                                        .catch(error => console.error('删除文件时出错:', error));
+                                }
+                            };
+    
+                            fileEntry.appendChild(deleteButton);
+                            fileListDiv.appendChild(fileEntry);
+                        });
+                    }
                 })
                 .catch(error => console.error('Error fetching file list:', error));
         }
-
+    
         // Fetch file list on page load
         fetchFileList();
-
+    
         // Download all files
         document.getElementById('downloadAllButton').addEventListener('click', () => {
             fetch('/files')
                 .then(response => response.json())
                 .then(files => {
+                    if (files.length === 0) {
+                        alert('无下载内容'); // 提示没有下载内容
+                        return;
+                    }
                     files.forEach(file => {
                         const link = document.createElement('a');
                         link.href = file.url;
@@ -171,11 +199,24 @@
                 })
                 .catch(error => console.error('Error downloading all files:', error));
         });
-
+    
+        // Delete all files
+        document.getElementById('deleteAllButton').addEventListener('click', () => {
+            if (confirm('确定要删除所有文件吗？')) { // Confirm before deletion
+                fetch('/delete-all', { method: 'DELETE' })
+                    .then(response => response.text())
+                    .then(data => {
+                        alert(data);
+                        fetchFileList(); // Update file list after deletion
+                    })
+                    .catch(error => console.error('删除所有文件时出错:', error));
+            }
+        });
+    
         // WebSocket connection
         const socket = io();
-
-        // Receive logs and display
+    
+        // 接收日志并显示
         socket.on('log', (message) => {
             const logDiv = document.getElementById('log');
             const logEntry = document.createElement('p');
@@ -183,5 +224,6 @@
             logDiv.appendChild(logEntry);
         });
     </script>
+    
 </body>
 </html>
