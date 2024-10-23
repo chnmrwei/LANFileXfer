@@ -13,18 +13,34 @@ const logger = createLogger({
     level: 'info',
     format: format.combine(
         format.timestamp({
-            format: () => moment().tz("Asia/Shanghai").format()
+            format: () => {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            }
         }),
-        format.json()
+        format.printf(({ level, message, timestamp }) => {
+            return `[${timestamp}] ${level.toUpperCase()}: ${message}`;
+        })
     ),
     transports: [
         new transports.Console(),
-        new transports.File({ filename: 'file-transfer.log', options: { encoding: 'utf8' } })
+        new transports.File({ 
+            filename: 'file-transfer.log', 
+            options: { encoding: 'utf8', flags: 'a' } // 在这里添加 flags: 'a' 以启用追加模式
+        })
     ]
 });
 
+
+
 const app = express();
-const port = 3000;
+const port = 8000;
 const server = http.createServer(app);
 const socketIo = io(server);
 
@@ -67,15 +83,26 @@ app.post('/upload', upload.single('file'), (req, res) => {
     if (!req.file) {
         return res.status(400).send('请选择要上传的文件');
     }
+
     const ip = req.ip || req.connection.remoteAddress;
     const fileName = req.file.filename;
-    const currentTime = moment().tz("Asia/Shanghai").format();
+    
+    // 获取当前时间，格式为：YYYY-MM-DD HH:mm:ss
+    const currentTime = moment().tz("Asia/Shanghai").format('YYYY-MM-DD HH:mm:ss');
+    
+    // 匹配并提取IPv4地址
     const ipv4 = ip.match(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/);
     const clientIp = ipv4 ? ipv4[0] : 'Unknown IPv4';
-    logger.info(`File ${fileName} uploaded by ${clientIp} at ${currentTime}`);
-    socketIo.emit('log', `文件 ${fileName} 由 ${clientIp} 上传于 ${currentTime}`);
+
+    // 记录日志并发送WebSocket消息，包含时间戳
+    logger.info(`${clientIp} uploaded file => ${fileName}`);
+    socketIo.emit('log', `[${currentTime}] ${clientIp} 上传了文件 "${fileName}"`);
+
+
     res.send('文件上传成功。');
 });
+
+
 
 // 获取上传文件列表
 app.get('/files', (req, res) => {
@@ -87,17 +114,21 @@ app.get('/files', (req, res) => {
     res.json(fileList);
 });
 
+
 // 文件下载接口
 app.get('/download/:filename', (req, res) => {
     const filePath = path.join(__dirname, 'uploads', req.params.filename);
     if (fs.existsSync(filePath)) {
         const ip = req.ip || req.connection.remoteAddress;
         const fileName = req.params.filename;
-        const currentTime = moment().tz("Asia/Shanghai").format();
+        const currentTime = moment().tz("Asia/Shanghai").format('YYYY-MM-DD HH:mm:ss'); // 添加简洁的时间格式
         const ipv4 = ip.match(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/);
         const clientIp = ipv4 ? ipv4[0] : 'Unknown IPv4';
-        logger.info(`File ${fileName} downloaded by ${clientIp} at ${currentTime}`);
-        socketIo.emit('log', `文件 ${fileName} 由 ${clientIp} 下载于 ${currentTime}`);
+        
+        logger.info(`${clientIp} downloaded file => ${fileName}`);
+        socketIo.emit('log', `[${currentTime}] ${clientIp} 下载了文件 "${fileName}"`);
+        
+        
         res.download(filePath, (err) => {
             if (err) {
                 console.error('Error downloading file:', err);
@@ -108,12 +139,72 @@ app.get('/download/:filename', (req, res) => {
     }
 });
 
+// 删除单个文件接口
+app.delete('/delete/:filename', (req, res) => {
+    const filePath = path.join(__dirname, 'uploads', req.params.filename);
+    if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);  // 删除文件
+        const ip = req.ip || req.connection.remoteAddress;
+        const fileName = req.params.filename;
+        const currentTime = moment().tz("Asia/Shanghai").format('YYYY-MM-DD HH:mm:ss'); // 添加简洁的时间格式
+        const ipv4 = ip.match(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/);
+        const clientIp = ipv4 ? ipv4[0] : 'Unknown IPv4';
+        // 单个文件删除日志
+        logger.info(`${clientIp} deleted file => ${fileName}`);
+        socketIo.emit('log', `[${currentTime}] ${clientIp} 删除了文件 "${fileName}"`);
+
+        res.send(`文件 ${fileName} 已删除`);
+    } else {
+        res.status(404).send('文件未找到');
+    }
+});
+
+// 删除所有文件接口
+app.delete('/delete-all', (req, res) => {
+    const files = fs.readdirSync('uploads');
+    if (files.length === 0) {
+        return res.status(404).send('没有文件可删除');
+    }
+    
+    files.forEach(file => {
+        const filePath = path.join(__dirname, 'uploads', file);
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);  // 删除文件
+        }
+    });
+
+    const ip = req.ip || req.connection.remoteAddress;
+    const currentTime = moment().tz("Asia/Shanghai").format('YYYY-MM-DD HH:mm:ss'); // 添加简洁的时间格式
+    const ipv4 = ip.match(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/);
+    const clientIp = ipv4 ? ipv4[0] : 'Unknown IPv4';
+    // 所有文件删除日志
+    logger.info(`${clientIp} deleted all files`);
+    socketIo.emit('log', `[${currentTime}] ${clientIp} 删除了所有文件`);
+
+    res.send('所有文件已删除');
+});
+
+
 // WebSocket连接处理
 socketIo.on('connection', (socket) => {
-    logger.info('A user connected to the log stream');
+    let clientIp = socket.request.connection.remoteAddress || socket.handshake.address;
+
+    // 如果 IP 是 IPv6 格式并且包含 IPv4 地址
+    if (clientIp.includes('::ffff:')) {
+        clientIp = clientIp.split('::ffff:')[1]; // 提取出 IPv4 地址
+    }
+
+    // 如果是本地连接（::1），可以指定一个替代值
+    if (clientIp === '::1') {
+        clientIp = '127.0.0.1'; // 本地连接IPv4
+    }
+
+    logger.info(`${clientIp} connected`);
+
     socket.on('disconnect', () => {
-        logger.info('A user disconnected from the log stream');
+        logger.info(`${clientIp} disconnected`);
     });
 });
+
 
 server.listen(port, () => console.log(`Server running on http://localhost:${port}`));
