@@ -8,6 +8,9 @@
 - Express
 - Nodemon
 
+## 安装 Nodejs
+https://nodejs.org
+
 ## 快速开始
 你可以通过 Git 克隆此项目
 ```sh
