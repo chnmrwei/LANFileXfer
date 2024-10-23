@@ -7,6 +7,9 @@ LANFileXfer is a tool for transferring files over a local area network (LAN)
 - Express
 - Nodemon
 
+## Install Node.js
+https://nodejs.org
+
 ## Getting Starteds
 Clone the repository or download the ZIP:
 ```shell
