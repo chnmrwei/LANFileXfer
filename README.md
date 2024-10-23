@@ -5,7 +5,6 @@ LANFileXfer is a tool for transferring files over a local area network (LAN)
 - Visual Studio Code
 - Node.js and npm (comes with Node.js)
 - Express
-- Nodemon
 
 ## Install Node.js
 https://nodejs.org
@@ -29,14 +28,13 @@ In the terminal, install the required dependencies by running:
 ```shell
 npm install
 npm install express
-npm install -g nodemon
 ```
 Start the server:
 
 In your terminal, run the following command to start the server using Nodemon:
 
 ```shell
-npx nodemon ./server.js
+node ./server.js
 ```
 Wait for the server to start. Once it's up and running, you'll see a message like this:
 
