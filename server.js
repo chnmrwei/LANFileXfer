@@ -40,7 +40,7 @@ const logger = createLogger({
 
 
 const app = express();
-const port = 8000;
+const port = 3000;
 const server = http.createServer(app);
 const socketIo = io(server);
 
