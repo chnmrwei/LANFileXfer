@@ -6,7 +6,6 @@
 - Visual Studio Code
 - Node.js 以及 npm（Node.js 自带）
 - Express
-- Nodemon
 
 ## 安装 Nodejs
 https://nodejs.org
@@ -28,12 +27,11 @@ git clone https://github.com/chnmrwei/LANFileXfer.git
 ```sh
 npm install
 npm install express
-npm install -g nodemon
 ```
 启动服务
 
 ```sh
-npx nodemon ./server.js
+node ./server.js
 ```
 等待服务启动后，你将看到如下信息：
 
