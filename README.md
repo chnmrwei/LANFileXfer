@@ -27,7 +27,6 @@ In the terminal, install the required dependencies by running:
 
 ```shell
 npm install
-npm install express
 ```
 Start the server:
 
