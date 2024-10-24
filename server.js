@@ -78,14 +78,13 @@ app.use((req, res, next) => {
     next();
 });
 
-// 文件上传接口
-app.post('/upload', upload.single('file'), (req, res) => {
-    if (!req.file) {
+// 文件上传接口（批量）
+app.post('/upload', upload.array('files', 10), (req, res) => {  // 允许最多上传10个文件
+    if (!req.files || req.files.length === 0) {
         return res.status(400).send('请选择要上传的文件');
     }
 
     const ip = req.ip || req.connection.remoteAddress;
-    const fileName = req.file.filename;
     
     // 获取当前时间，格式为：YYYY-MM-DD HH:mm:ss
     const currentTime = moment().tz("Asia/Shanghai").format('YYYY-MM-DD HH:mm:ss');
@@ -95,13 +94,14 @@ app.post('/upload', upload.single('file'), (req, res) => {
     const clientIp = ipv4 ? ipv4[0] : 'Unknown IPv4';
 
     // 记录日志并发送WebSocket消息，包含时间戳
-    logger.info(`${clientIp} uploaded file => ${fileName}`);
-    socketIo.emit('log', `[${currentTime}] ${clientIp} 上传了文件 "${fileName}"`);
-
+    req.files.forEach(file => {
+        const fileName = file.filename;
+        logger.info(`${clientIp} uploaded file => ${fileName}`);
+        socketIo.emit('log', `[${currentTime}] ${clientIp} 上传了文件 "${fileName}"`);
+    });
 
     res.send('文件上传成功。');
 });
-
 
 
 // 获取上传文件列表
