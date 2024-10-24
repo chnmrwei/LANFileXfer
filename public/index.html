@@ -95,42 +95,51 @@
     </style>
 </head>
 <body>
-    <h1>File Transfer</h1>
+    <h1>文件传输</h1>
     
     <form id="uploadForm" action="/upload" method="POST" enctype="multipart/form-data">
-        <input type="file" name="file" required />
-        <button id="uploadButton" type="submit">Upload</button>
+        <!-- 支持批量选择文件 -->
+        <input type="file" name="files" id="fileInput" multiple required />
+        <button id="uploadButton" type="submit">上传</button>
     </form>
     
-    <h1>Download Files</h1>
+    <h1>下载文件</h1>
     <div id="fileList"></div>
-    <!-- 删除单个文件 -->
-    <button id="deleteAllButton" style="margin-top: 20px;">Delete All</button>
+    <!-- 删除所有文件 -->
+    <button id="deleteAllButton" style="margin-top: 20px;">删除全部</button>
     <p></p>
-    <button id="downloadAllButton">Download All</button>
+    <button id="downloadAllButton">下载全部</button>
     
-    <h1>Log</h1>
+    <h1>日志</h1>
     <div id="log"></div>
+    
     <script>
         document.getElementById('uploadForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const uploadButton = document.getElementById('uploadButton');
-            const formData = new FormData(this);
+            const formData = new FormData();
+            const files = document.getElementById('fileInput').files;
+            
+            // 将每个文件添加到 FormData
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
+            
             uploadButton.disabled = true;
-            uploadButton.textContent = 'Uploading...';
+            uploadButton.textContent = '上传中...';
     
             fetch('/upload', { method: 'POST', body: formData })
                 .then(response => response.text())
                 .then(data => {
                     alert(data);
                     uploadButton.disabled = false;
-                    uploadButton.textContent = 'Upload';
-                    fetchFileList(); // Update file list after successful upload
+                    uploadButton.textContent = '上传';
+                    fetchFileList(); // 上传成功后更新文件列表
                 })
                 .catch(error => {
-                    console.error('Error:', error);
+                    console.error('错误:', error);
                     uploadButton.disabled = false;
-                    uploadButton.textContent = 'Upload';
+                    uploadButton.textContent = '上传';
                 });
         });
     
@@ -154,7 +163,7 @@
     
                             // 添加删除按钮
                             const deleteButton = document.createElement('button');
-                            deleteButton.textContent = 'Delete';
+                            deleteButton.textContent = '删除';
                             deleteButton.style.marginLeft = '10px';
                             deleteButton.onclick = function() {
                                 if (confirm(`确定要删除文件 ${file.name} 吗？`)) {
