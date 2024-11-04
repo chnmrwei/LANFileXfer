@@ -20,7 +20,7 @@ git clone https://github.com/chnmrwei/LANFileXfer.git
 
 ## 使用 VSCode 打开项目：
 
-导航到项目文件夹并用 Visual Studio Code 打开。
+导航到项目文件夹并用 *Visual Studio Code* 打开。
 
 安装依赖：
 
@@ -39,7 +39,7 @@ Server running on http://127.0.0.1:3000
 ```
 测试应用：
 
-- 打开浏览器，访问 http://127.0.0.1:3000
+- 打开浏览器，访问 `http://127.0.0.1:3000`
 - 测试文件传输功能。
 
 ## 使用说明
