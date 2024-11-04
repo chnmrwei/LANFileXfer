@@ -17,9 +17,9 @@ git clone https://github.com/chnmrwei/LANFileXfer.git
 Or download the ZIP file from the repository and extract it.
 
 
-## Open the project in VSCode:
+## Open the project in *VSCode*:
 
-Navigate to the project folder and open it with Visual Studio Code.
+Navigate to the project folder and open it with *Visual Studio Code*.
 
 Install dependencies:
 
@@ -43,7 +43,7 @@ Server running on http://127.0.0.1:3000
 ```
 Test the application:
 
-Open a browser and go to http://127.0.0.1:3000 to test the file transfer functionality.
+Open a browser and go to `http://127.0.0.1:3000` to test the file transfer functionality.
 
 ## When using
 
